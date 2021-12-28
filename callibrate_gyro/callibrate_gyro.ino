@@ -108,7 +108,7 @@ void setup() {
     accelgyro.setXAccelOffset(1567);
     accelgyro.setYAccelOffset(-4630);
     accelgyro.setZAccelOffset(1730);
-    accelgyro.setXGyroOffset(120);
+    accelgyro.setXGyroOffset(117);
     accelgyro.setYGyroOffset(0);
     accelgyro.setZGyroOffset(15);
 
