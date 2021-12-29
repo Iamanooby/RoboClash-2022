@@ -96,12 +96,14 @@ MPU6050 mpu;
 // http://en.wikipedia.org/wiki/Gimbal_lock)
 //#define OUTPUT_READABLE_EULER
 
+#define OUTPUT_YAW_ERROR
+
 // uncomment "OUTPUT_READABLE_YAWPITCHROLL" if you want to see the yaw/
 // pitch/roll angles (in degrees) calculated from the quaternions coming
 // from the FIFO. Note this also requires gravity vector calculations.
 // Also note that yaw/pitch/roll angles suffer from gimbal lock (for
 // more info, see: http://en.wikipedia.org/wiki/Gimbal_lock)
-#define OUTPUT_READABLE_YAWPITCHROLL
+//#define OUTPUT_READABLE_YAWPITCHROLL
 
 // uncomment "OUTPUT_READABLE_REALACCEL" if you want to see acceleration
 // components with gravity removed. This acceleration reference frame is
@@ -202,10 +204,10 @@ void setup() {
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(117);
-    mpu.setYGyroOffset(0);
-    mpu.setZGyroOffset(15);
-    mpu.setZAccelOffset(1730); // 1688 factory default for my test chip
+    mpu.setXGyroOffset(119);
+    mpu.setYGyroOffset(-4);
+    mpu.setZGyroOffset(19);
+    mpu.setZAccelOffset(1745); // 1688 factory default for my test chip
 
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
@@ -325,6 +327,32 @@ void loop() {
             Serial.println(ypr[2] * 180/M_PI);
         #endif
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        #ifdef OUTPUT_YAW_ERROR
+            // display Euler angles in degrees
+            mpu.dmpGetQuaternion(&q, fifoBuffer);
+            mpu.dmpGetGravity(&gravity, &q);
+            mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+
+            float yawing = ypr[0] * 180/M_PI;
+            Serial.print("ypr\t");
+            Serial.print(yawing);
+
+            float target = 160;
+            float error = target - yawing;
+
+            if(error>180)
+              error -= 360;
+            else if (error<-180)
+              error+=360;
+            else
+              error = error;
+            
+            
+            Serial.print("\tError: ");
+            Serial.println(error);
+        #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #ifdef OUTPUT_READABLE_REALACCEL
             // display real acceleration, adjusted to remove gravity
             mpu.dmpGetQuaternion(&q, fifoBuffer);

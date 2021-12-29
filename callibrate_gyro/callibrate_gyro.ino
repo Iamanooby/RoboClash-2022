@@ -52,12 +52,12 @@ MPU6050 accelgyro;
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
 
-
+#define OUTPUT_READABLE_ACCELGYRO_AVERAGED
 
 // uncomment "OUTPUT_READABLE_ACCELGYRO" if you want to see a tab-separated
 // list of the accel X/Y/Z and then gyro X/Y/Z values in decimal. Easy to read,
 // not so easy to parse, and slow(er) over UART.
-#define OUTPUT_READABLE_ACCELGYRO
+//#define OUTPUT_READABLE_ACCELGYRO
 
 // uncomment "OUTPUT_BINARY_ACCELGYRO" to send all 6 axes of data as 16-bit
 // binary, one right after the other. This is very fast (as fast as possible
@@ -92,7 +92,7 @@ void setup() {
 
     // use the code below to change accel/gyro offset values
     
-    //Serial.println("Updating internal sensor offsets...");
+    Serial.println("Updating internal sensor offsets...");
     // -76  -2359 1688  0 0 0
   /*  Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
     Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
@@ -105,12 +105,19 @@ void setup() {
     //1. set these to 0
     //2. enter pseudo random #s till they are all 0 in terminal execpt accel Z (16384)
     //   note - #s are'nt just the inverse of what's on the terminal window. 
-    accelgyro.setXAccelOffset(1567);
-    accelgyro.setYAccelOffset(-4630);
-    accelgyro.setZAccelOffset(1730);
-    accelgyro.setXGyroOffset(117);
-    accelgyro.setYGyroOffset(0);
-    accelgyro.setZGyroOffset(15);
+    accelgyro.setXAccelOffset(1600);
+    accelgyro.setYAccelOffset(-4760);
+    accelgyro.setZAccelOffset(1745);
+    accelgyro.setXGyroOffset(119);
+    accelgyro.setYGyroOffset(-4);
+    accelgyro.setZGyroOffset(19);
+
+//    accelgyro.setXAccelOffset(0);
+//    accelgyro.setYAccelOffset(0);
+//    accelgyro.setZAccelOffset(0);
+//    accelgyro.setXGyroOffset(0);
+//    accelgyro.setYGyroOffset(0);
+//    accelgyro.setZGyroOffset(0);
 
    /* Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
     Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
@@ -126,14 +133,56 @@ void setup() {
 }
 
 void loop() {
-    // read raw accel/gyro measurements from device
-    accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-    // these methods (and a few others) are also available
-    //accelgyro.getAcceleration(&ax, &ay, &az);
-    //accelgyro.getRotation(&gx, &gy, &gz);
+
+    #ifdef OUTPUT_READABLE_ACCELGYRO_AVERAGED
+        // read raw accel/gyro measurements from device
+        float t_ax = 0;
+        float t_ay = 0;
+        float t_az = 0;
+        float t_gx = 0;
+        float t_gy = 0;
+        float t_gz = 0;
+    
+        int count = 100;
+        for (int i = 0; i<count;i++)
+        {
+          accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+          t_ax += ax;
+          t_ay += ay;
+          t_az += az;
+          t_gx += gx;
+          t_gy += gy;
+          t_gz += gz;
+    
+        }
+        
+    
+    
+    
+        float avg_ax = t_ax/count;
+        float avg_ay = t_ay/count;
+        float avg_az = t_az/count;
+        float avg_gx = t_gx/count;
+        float avg_gy = t_gy/count;
+        float avg_gz = t_gz/count;  
+        // these methods (and a few others) are also available
+        //accelgyro.getAcceleration(&ax, &ay, &az);
+        //accelgyro.getRotation(&gx, &gy, &gz);        
+  
+      
+        // display tab-separated accel/gyro x/y/z values
+        Serial.print("a/g:\t");
+        Serial.print(avg_ax); Serial.print("\t");
+        Serial.print(avg_ay); Serial.print("\t");
+        Serial.print(avg_az); Serial.print("\t");
+        Serial.print(avg_gx); Serial.print("\t");
+        Serial.print(avg_gy); Serial.print("\t");
+        Serial.println(avg_gz);
+    #endif
 
     #ifdef OUTPUT_READABLE_ACCELGYRO
+        accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
         // display tab-separated accel/gyro x/y/z values
         Serial.print("a/g:\t");
         Serial.print(ax); Serial.print("\t");
