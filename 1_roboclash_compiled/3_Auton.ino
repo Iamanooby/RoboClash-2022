@@ -57,19 +57,20 @@ double input;
 double output;
 
 // Arbitrary setpoint and gains - adjust these as fit for your project:
-double setpoint = 512;
-double p = 10;
-double i = 1;
-double d = 0.5;
+double setpoint = 0;
+double p = 0.1;
+double i = 0;
+double d = 0.05;
 
 void pid_setup()
 {
+  gyro_setup();
   myController.begin(&input, &output, &setpoint, p, i, d);
 
   // myController.reverse()               // Uncomment if controller output is "reversed"
   // myController.setSampleTime(10);      // OPTIONAL - will ensure at least 10ms have past between successful compute() calls
   myController.setOutputLimits(-100, 100);
-  myController.setBias(255.0 / 2.0);
+  myController.setBias(0);
   myController.setWindUpLimits(-10, 10); // Groth bounds for the integral term to prevent integral wind-up
   
   myController.start();
@@ -79,9 +80,9 @@ void pid_setup()
 
 float PID_gyro_loop()
 {
-  input = 0; // Replace with sensor feedback aka gyro
+  input = gyro_loop(); // Replace with sensor feedback aka gyro
   myController.compute();
-  return output;
+  return -output;
 }
 
 ////////////////////////////////////movement///////////////////////////////////
@@ -109,11 +110,10 @@ void moving(char dir, int power)//remember to reset setpoint as current point be
 
 ////////////////////////////////////auton////////////////////////////////////
 
-void setup_auton()
+void auton_setup()
 {
   setup_button();
   setup_ultrasound();
-  pid_setup();
 }
 
 void auton()
