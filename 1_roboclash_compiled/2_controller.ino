@@ -7,27 +7,27 @@
 // Positive Terminal to odd number of L298N
 // Negative Terminal to even number of L298N
 
-int motorFL_speed = 6;            //front left enA
-int motorFL_1 = 23;                //front left in1
-int motorFL_2 = 25;                //front left in2
-int motorBL_speed = 7;            //back left enB
-int motorBL_1 = 27;                //back left in3
-int motorBL_2 = 29;                //back left in4
+const int motorFL_speed = 6;            //front left enA
+const int motorFL_1 = 29;                //front left in1
+const int motorFL_2 = 27;                //front left in2
+const int motorBL_speed = 7;            //back left enB
+const int motorBL_1 = 25;                //back left in3
+const int motorBL_2 = 23;                //back left in4
 
 
-int motorFR_speed = 8;            //front right enA
-int motorFR_1 = 31;                //front right in1
-int motorFR_2 = 33;                //front right in2
-int motorBR_speed = 9;           //back right enB
-int motorBR_1 = 35;               //back right in3
-int motorBR_2 = 37;               //back right in4
+const int motorFR_speed = 9;            //front right enA
+const int motorFR_1 = 31;                //front right in1
+const int motorFR_2 = 33;                //front right in2
+const int motorBR_speed = 8;           //back right enB
+const int motorBR_1 = 35;               //back right in3
+const int motorBR_2 = 37;               //back right in4
 
-int motorIL_speed = 10;            //intake left enA, unused
-int motorIL_1 = 39;                //intake left in1
-int motorIL_2 = 41;                //intake left in2
-int motorIR_speed = 11;           //intake right enB, unused
-int motorIR_1 = 43;               //intake right in3
-int motorIR_2 = 45;               //intake right in4
+const int motorIL_speed = 10;            //intake left enA, unused
+const int motorIL_1 = 43;                //intake left in1
+const int motorIL_2 = 45;                //intake left in2
+const int motorIR_speed = 11;           //intake right enB, unused
+const int motorIR_1 = 39;               //intake right in3
+const int motorIR_2 = 41;               //intake right in4
 
 class Motor 
 {
@@ -127,8 +127,8 @@ void setup_servo()
 
 void lift(int ch_value)
 {
-  int bottom_lift_pos = 0;
-  int top_lift_pos = 180;
+  int bottom_lift_pos = 0;//need to change
+  int top_lift_pos = 180;//need to change
   int pos = map(ch_value, -100, 100, bottom_lift_pos, top_lift_pos);
   servo_LeftLift.write(pos);
   servo_RightLift.write(145-pos);    
@@ -152,6 +152,16 @@ void arm_up()
 void arm_down()
 {
   servo_ClawArm.write(0);
+  
+}
+
+//if joshua prefers manual control
+void arm_control(int ch_value)
+{
+  int bottom_arm_pos = 0;//need to change
+  int top_arm_pos = 180;//need to change
+  int pos = map(ch_value, -100, 100, bottom_arm_pos, top_arm_pos);
+  servo_ClawArm.write(pos);
 }
 
 ////////////////////////////////////////////CONTROLS/////////////////////////////////////
@@ -180,6 +190,22 @@ bool readSwitch(byte channelInput, bool defaultValue){
   return (ch > 50);
 }
 
+//////////////////////////////////////////current sensor protection//////////////////////
+
+const int currSense_pin = A0;
+bool enable_currentSafe = false;//change to true to activate
+
+
+bool currSafe_check()
+{
+  float curr = abs(analogRead(currSense_pin)/1024.0*5.0-2.5)/0.17;
+  
+  if (curr > 3.0 && enable_currentSafe)
+    return false;//not safe
+  else 
+    return true;//safe
+}
+
 
 
 
@@ -196,9 +222,18 @@ void controller_setup()
 
 }
 
-void field_oriented_control()
+bool FOC_on = false;
+
+void field_oriented_control(int &F, int &S)//FOC
 {
-  //do next time if needed
+  unreset_gyro();//remove this once u establish a button to reset gyro. otherwise this will use default forward position as 0. so face robot in normal orientation before turning robot on (drifting will occur)
+  float theta = gyro_loop();
+  int f_prime = F*cos(theta)+S*sin(theta);
+  int s_prime = -F*sin(theta)+S*cos(theta);
+
+  //pass back by reference
+  F = f_prime;
+  S = s_prime;
 }
 
 
@@ -230,14 +265,24 @@ void controller_loop()
         ch_values [i+1] = 0;
     }
 
-    //run base motor motor
-    motorFL.moveMotor(+ch_values[2]+ch_values[4]+ch_values[1]);
-    motorFR.moveMotor(+ch_values[2]-ch_values[4]-ch_values[1]);
-    motorBL.moveMotor(+ch_values[2]-ch_values[4]+ch_values[1]);
-    motorBR.moveMotor(+ch_values[2]+ch_values[4]-ch_values[1]);
+    if(FOC_on)//alter channel values temporarily, passed by reference
+    {
+       field_oriented_control(ch_values[2], ch_values[4]);//FOC
+    }
+    
+
+    if (currSafe_check())//current is safe or safety is disabled
+    {
+      //run base motor motor
+      motorFL.moveMotor(+ch_values[2]+ch_values[4]+ch_values[1]);
+      motorFR.moveMotor(+ch_values[2]-ch_values[4]-ch_values[1]);
+      motorBL.moveMotor(+ch_values[2]-ch_values[4]+ch_values[1]);
+      motorBR.moveMotor(+ch_values[2]+ch_values[4]-ch_values[1]);
+    }
     //run intake motor
     motorIR.moveMotor(ch_values[6]);
     motorIL.moveMotor(-ch_values[6]);
+  
 
     //control lift
     lift(ch_values[3]);

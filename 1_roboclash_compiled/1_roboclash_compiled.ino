@@ -8,14 +8,14 @@
 
 void setup() {
   // put your setup code here, to run once:
+Serial.begin(115200);
 //  auton_setup();
 //  controller_setup();
-pid_setup();
-Serial.begin(115200);
+
+
 }
 
 void loop() 
 {
 //  controller_loop();
-Serial.println(PID_gyro_loop());
 }

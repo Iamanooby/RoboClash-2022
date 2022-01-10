@@ -106,6 +106,35 @@ void gyro_setup()
 
 }
 
+float target = 0;
+
+void soft_reset_gyro(float angle_change)//do this before running any loop that uses gyro_loop, to ensure you always face '0' before PID movement or simple turn by gyro
+                                        //this MUST NOT be in a loop
+{
+  target = gyro_loop() + angle_change;
+}
+
+void unreset_gyro()//so can use FOC
+{
+  target = 0;
+}
+
+float gyro_target_error()//this will be in a loop
+{
+  float yawing = gyro_loop();
+  float error = target - yawing;
+
+  //the math here is just to convert an angle larger than 180 to be an angle less that 180 in the other direction
+  if(error>180)
+    error -= 360;
+  else if (error<-180)
+    error+=360;
+  else
+    error = error;
+    
+  return error;
+}
+
 float gyro_loop()
 {
 
@@ -122,18 +151,9 @@ float gyro_loop()
     
     float yawing = ypr[0] * 180/M_PI;
     
-    float target = 0;
-    float error = target - yawing;
+
     
-    if(error>180)
-      error -= 360;
-    else if (error<-180)
-      error+=360;
-    else
-      error = error;
-    
-    
-    return error;
+    return yawing;
 
   }
 
