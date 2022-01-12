@@ -9,13 +9,14 @@
 void setup() {
   // put your setup code here, to run once:
 Serial.begin(115200);
-//  auton_setup();
-//  controller_setup();
-
+  auton_setup();
+  controller_setup();
+//  expand();//waits for button press to continue
 
 }
 
 void loop() 
 {
-//  controller_loop();
+  controller_loop();
+//auton();
 }

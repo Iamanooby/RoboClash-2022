@@ -1,30 +1,70 @@
-int motorFL_speed = 3;            //front left enA
-int motorFL_1 = 4;                //front left in1
-int motorFL_2 = 5;                //front left in2
-int motorBL_speed = 6;            //back left enB
-int motorBL_1 = 7;                //back left in3
-int motorBL_2 = 8;                //back left in4
+const int motorFL_speed = 6;            //front left enA
+const int motorFL_1 = 29;                //front left in1
+const int motorFL_2 = 27;                //front left in2
+const int motorBL_speed = 7;            //back left enB
+const int motorBL_1 = 25;                //back left in3
+const int motorBL_2 = 23;                //back left in4
+
+
+const int motorFR_speed = 9;            //front right enA
+const int motorFR_1 = 31;                //front right in1
+const int motorFR_2 = 33;                //front right in2
+const int motorBR_speed = 8;           //back right enB
+const int motorBR_1 = 35;               //back right in3
+const int motorBR_2 = 37;               //back right in4
+
+const int motorIL_speed = 10;            //intake left enA, unused
+const int motorIL_1 = 43;                //intake left in1
+const int motorIL_2 = 45;                //intake left in2
+const int motorIR_speed = 11;           //intake right enB, unused
+const int motorIR_1 = 39;               //intake right in3
+const int motorIR_2 = 41;               //intake right in4
 
 void setup() {
   // put your setup code here, to run once:
   pinMode(motorFL_speed, OUTPUT);
   pinMode(motorFL_1, OUTPUT);
   pinMode(motorFL_2, OUTPUT); 
+  pinMode(motorFR_speed, OUTPUT);
+  pinMode(motorFR_1, OUTPUT);
+  pinMode(motorFR_2, OUTPUT); 
   pinMode(motorBL_speed, OUTPUT);
   pinMode(motorBL_1, OUTPUT);
   pinMode(motorBL_2, OUTPUT); 
-  Serial.begin(9600);
+  pinMode(motorBR_speed, OUTPUT);
+  pinMode(motorBR_1, OUTPUT);
+  pinMode(motorBR_2, OUTPUT); 
+
+  Serial.begin(115200);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  digitalWrite(motorFL_1, HIGH);
-  digitalWrite(motorFL_2, LOW);
-  analogWrite(motorFL_speed, 255);
+  digitalWrite(motorIL_1, HIGH);
+  digitalWrite(motorIL_2, LOW);
+  analogWrite(motorIL_speed, 255);
   
-  digitalWrite(motorBL_1, HIGH);
-  digitalWrite(motorBL_2, LOW);
-  analogWrite(motorBL_speed, 255);
+  digitalWrite(motorIR_1, HIGH);
+  digitalWrite(motorIR_2, LOW);
+  analogWrite(motorIR_speed, 255);
+//
+//
+//  digitalWrite(motorFL_1, HIGH);
+//  digitalWrite(motorFL_2, LOW);
+//  analogWrite(motorFL_speed, 255);
+//  
+//  digitalWrite(motorFR_1, HIGH);
+//  digitalWrite(motorFR_2, LOW);
+//  analogWrite(motorFR_speed, 255);
+//
+//
+//  digitalWrite(motorBL_1, HIGH);
+//  digitalWrite(motorBL_2, LOW);
+//  analogWrite(motorBL_speed, 255);
+//  
+//  digitalWrite(motorBR_1, HIGH);
+//  digitalWrite(motorBR_2, LOW);
+//  analogWrite(motorBR_speed, 255);
 
-  Serial.println(analogRead(A0)/1024.0*5.0/31.7);
+  Serial.println(analogRead(A0));
 }

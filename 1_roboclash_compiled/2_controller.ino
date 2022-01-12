@@ -33,6 +33,7 @@ class Motor
 {
   private:
     int in1_port, in2_port,pwm_port;
+    int maxspeed = 222;
   
   public:
     Motor(int in1_port, int in2_port, int pwm_port)
@@ -49,9 +50,10 @@ class Motor
       pinMode(this->pwm_port, OUTPUT); 
     }
 
-    void moveMotor(int power)
+    void moveMotor(int power_raw)
     {
-      int spd = map(abs(power), 0, 100, 0, 255);
+      int power = constrain(power_raw,-100,100);//must have constraint or when it goes over the upper bound, it will go inverted
+      int spd = map(abs(power), 0, 100, 0, maxspeed);//CHANGE BACK MAX SPEED
       analogWrite(this->pwm_port, spd);
       if (power==0)
       {
@@ -103,14 +105,14 @@ void move_robot(int FL_pow, int FR_pow, int BL_pow, int BR_pow)//this is for aut
 
 void intake(int intake_pow)
 {
-    motorFL.moveMotor(intake_pow);
-    motorFR.moveMotor(intake_pow);
+    motorIL.moveMotor(intake_pow);
+    motorIR.moveMotor(intake_pow);
 }
 
 ////////////////////////////////////////////SERVOS/////////////////////////////////////
 
-int servo_RightLift_pin = 2;
-int servo_LeftLift_pin = 3;
+int servo_RightLift_pin = 3;
+int servo_LeftLift_pin = 2;
 int servo_Claw_pin = 4;
 int servo_ClawArm_pin = 5;
 
@@ -121,18 +123,39 @@ void setup_servo()
 {
   servo_LeftLift.attach(servo_LeftLift_pin);
   servo_RightLift.attach(servo_RightLift_pin);
+  lift_down();
+  
   servo_Claw.attach(servo_Claw_pin);
+  released();
+  
   servo_ClawArm.attach(servo_ClawArm_pin);
+  arm_collapsed();
 }
+
+int top_lift_pos = 120;//need to change
+int bottom_lift_pos = 20;//need to change
+
 
 void lift(int ch_value)
 {
-  int bottom_lift_pos = 0;//need to change
-  int top_lift_pos = 180;//need to change
   int pos = map(ch_value, -100, 100, bottom_lift_pos, top_lift_pos);
   servo_LeftLift.write(pos);
-  servo_RightLift.write(145-pos);    
+  servo_RightLift.write(135-pos);    
 }
+
+void lift_up()
+{
+  servo_LeftLift.write(top_lift_pos);
+  servo_RightLift.write(135-top_lift_pos);    
+  
+}
+
+void lift_down()
+{
+  servo_LeftLift.write(bottom_lift_pos);
+  servo_RightLift.write(135-bottom_lift_pos);    
+}
+
 
 void grabbed()
 {
@@ -141,27 +164,52 @@ void grabbed()
 
 void released()
 {
-  servo_Claw.write(0);
+  servo_Claw.write(30);
 }
+
+
+int top_arm_pos = 30;//need to change
+int middle_arm_pos = 50;
+int bottom_arm_pos = 170;//need to change
+int collapsed_arm_pos = 2;//need to change 
 
 void arm_up()
 {
-  servo_ClawArm.write(90);
+  servo_ClawArm.write(top_arm_pos);
+}
+
+void arm_mid()
+{
+  servo_ClawArm.write(middle_arm_pos);
 }
 
 void arm_down()
 {
-  servo_ClawArm.write(0);
+  servo_ClawArm.write(bottom_arm_pos);
   
+}
+
+void arm_collapsed()
+{
+  servo_ClawArm.write(collapsed_arm_pos);
 }
 
 //if joshua prefers manual control
 void arm_control(int ch_value)
 {
-  int bottom_arm_pos = 0;//need to change
-  int top_arm_pos = 180;//need to change
-  int pos = map(ch_value, -100, 100, bottom_arm_pos, top_arm_pos);
-  servo_ClawArm.write(pos);
+
+  int pos;
+  if(ch_value>0)
+  {
+    pos = map(ch_value, 0, 100, middle_arm_pos, top_arm_pos);
+    servo_ClawArm.write(pos);
+  }
+  else if(ch_value<=0)
+  {
+    pos = map(ch_value, -100, 0, bottom_arm_pos, middle_arm_pos);
+    servo_ClawArm.write(pos);
+  }
+  
 }
 
 ////////////////////////////////////////////CONTROLS/////////////////////////////////////
@@ -190,23 +238,29 @@ bool readSwitch(byte channelInput, bool defaultValue){
   return (ch > 50);
 }
 
-//////////////////////////////////////////current sensor protection//////////////////////
+/////////////////////////////////////Field Oriented Control////////////////////
 
-const int currSense_pin = A0;
-bool enable_currentSafe = false;//change to true to activate
+bool FOC_on = true;
 
-
-bool currSafe_check()
+void field_oriented_control(int &F, int &S)//FOC
 {
-  float curr = abs(analogRead(currSense_pin)/1024.0*5.0-2.5)/0.17;
-  
-  if (curr > 3.0 && enable_currentSafe)
-    return false;//not safe
-  else 
-    return true;//safe
+  unreset_gyro();//remove this once u establish a button to reset gyro. otherwise this will use default forward position as 0. so face robot in normal orientation before turning robot on (drifting will occur)
+  float theta_deg = gyro_loop();
+  float theta_rad = theta_deg/180.0*M_PI;//convert back to rads
+  float f_prime = F*cos(theta_rad)+S*sin(theta_rad);
+  float s_prime = -F*sin(theta_rad)+S*cos(theta_rad);
+
+  Serial.print("Theta:\t");
+  Serial.print(theta_deg);
+  Serial.print("F_prime:\t");
+  Serial.print(f_prime);
+  Serial.print("S_prime:\t");
+  Serial.println(s_prime);
+
+  //pass back by reference
+  F = f_prime;
+  S = s_prime;
 }
-
-
 
 
 ///////////////////////////////////////////controller code/////////////////////////////////
@@ -221,21 +275,6 @@ void controller_setup()
 
 
 }
-
-bool FOC_on = false;
-
-void field_oriented_control(int &F, int &S)//FOC
-{
-  unreset_gyro();//remove this once u establish a button to reset gyro. otherwise this will use default forward position as 0. so face robot in normal orientation before turning robot on (drifting will occur)
-  float theta = gyro_loop();
-  int f_prime = F*cos(theta)+S*sin(theta);
-  int s_prime = -F*sin(theta)+S*cos(theta);
-
-  //pass back by reference
-  F = f_prime;
-  S = s_prime;
-}
-
 
 //Channel 2 – Left Stick, Up/Down 
 //Channel 4 – Left Stick, Left/Right 
@@ -255,59 +294,85 @@ int ch_values [11] = { };//start using from index 1. So ch 1 is ch_values[1]. Ra
 
 void controller_loop()
 {
-    for (byte i = 0; i<10; i++)
-    {
-      int ch_value = readChannel(i, -100, 100, 0);
+  for (byte i = 0; i<10; i++)
+  {
+    int ch_value = readChannel(i, -100, 100, 0);
 
-      if (abs(ch_value)>threshold || (i!= 0 && i!= 1 && i!= 3 && i!=5 && i !=6))//set basd on whichever channels need thresholding
-        ch_values [i+1] = ch_value;
-      else
-        ch_values [i+1] = 0;
-    }
+    if (abs(ch_value)>threshold || (i!= 0 && i!= 1 && i!= 3 && i!=5 && i!=8))//set basd on whichever channels need thresholding
+      ch_values [i+1] = ch_value;
+    else
+      ch_values [i+1] = 0;
+  }
 
-    if(FOC_on)//alter channel values temporarily, passed by reference
-    {
-       field_oriented_control(ch_values[2], ch_values[4]);//FOC
-    }
-    
-
-    if (currSafe_check())//current is safe or safety is disabled
-    {
-      //run base motor motor
-      motorFL.moveMotor(+ch_values[2]+ch_values[4]+ch_values[1]);
-      motorFR.moveMotor(+ch_values[2]-ch_values[4]-ch_values[1]);
-      motorBL.moveMotor(+ch_values[2]-ch_values[4]+ch_values[1]);
-      motorBR.moveMotor(+ch_values[2]+ch_values[4]-ch_values[1]);
-    }
-    //run intake motor
-    motorIR.moveMotor(ch_values[6]);
-    motorIL.moveMotor(-ch_values[6]);
+  if(FOC_on && ch_values[10]>0)//alter channel values temporarily, passed by reference
+  {
+     field_oriented_control(ch_values[2], ch_values[4]);//FOC
+  }
   
 
-    //control lift
-    lift(ch_values[3]);
+  if (currSafe_check())//current is safe or safety is disabled
+  {
+    //run base motor motor
+    motorFL.moveMotor(+ch_values[2]+ch_values[4]+ch_values[1]);
+    motorFR.moveMotor(+ch_values[2]-ch_values[4]-ch_values[1]);
+    motorBL.moveMotor(+ch_values[2]-ch_values[4]+ch_values[1]);
+    motorBR.moveMotor(+ch_values[2]+ch_values[4]-ch_values[1]);
+  }
+  else
+  {
+    move_robot(0,0,0,0);//stop
+//      delay(500);//let current drop before proceeding
+  }
+  //run intake motor
+  motorIR.moveMotor(ch_values[6]);
+  motorIL.moveMotor(ch_values[6]);
 
-    //control arm
-    if (ch_values[7]>0)//remember, already thresholded
-      arm_up();
-    else if (ch_values[7]<0)
-      arm_down();
-    else;
-      //remain status quo
 
-    //control claw
-    if (ch_values[9]>0)
-      grabbed();
-    else if (ch_values[10]>0)
-      released();
+  //control lift
+  lift(ch_values[3]);
 
-    //for auton, check for button pressed AND trigger then activate
-    if (ch_values[8]>0)
+//    //control arm
+//    if (ch_values[7]>0)
+//      arm_up();
+//    else if (ch_values[7]<0)
+//      arm_down();
+//    else;
+//      //remain status quo
+
+
+  //control claw
+  if (ch_values[9]<0)
+    grabbed();
+  else if (ch_values[9]>0)
+    released();
+
+  //for auton, check for button pressed AND trigger then activate
+
+  //channel 8 already thresholded
+  if(ch_values[8]<0)//default, expands
+  {
+    if (button_pressed())
+   {
+    expand();
+   }
+  }
+  else if(ch_values[8]==0)//run auton
+  {
+    if(button_pressed())
     {
-      if(button_pressed())
-      {
-        auton();
-      }
+      auton();
     }
+  }
+  else
+  {
+    //press button nothing happens, instead run normal arm mapping
+    arm_control(ch_values[7]);
+  }
+
+
+  //processor loop to keep arduino running
+  Serial.println("PROCESSING");
+
+
 
 }

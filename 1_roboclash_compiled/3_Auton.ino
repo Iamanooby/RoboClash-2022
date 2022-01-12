@@ -243,12 +243,51 @@ void auton_setup()
 }
 
 
-int slow_speed = 30;
+int slow_speed = 50;
 int mid_speed = 70;
 int fast_speed = 90;
 
+void expand()//this will be done in setup
+{
+//  while(button_pressed()==false)//wait for button press
+//  {
+//    
+//  }
+//  Serial.println("Start Expand");
+
+  //execute expand code
+  arm_mid();
+
+  move_robot(slow_speed, slow_speed, slow_speed, slow_speed);//dont want pid here
+  delay(500);
+  move_robot(-mid_speed, -mid_speed, -mid_speed, -mid_speed);//dont want pid here
+  delay(1000);
+  moving("S", 0);
+}
 
 void auton()
 {
   //if button pressed then execute
+
+  //move forward to intake
+  intake(100);
+  unsigned long timing = millis();
+  while(millis()-timing<1000)
+  {
+    moving("F", mid_speed);//must be in loop for gyro
+  }
+  moving("S", 0);
+  delay(1000);
+  intake(0);
+  
+  //move back untill timing and button pressed
+  move_robot(-mid_speed, -mid_speed, -mid_speed, -mid_speed);
+  timing = millis();
+  while(millis()-timing<3000 && button_pressed()==false);//3s cut off timing, if button still not pressed
+  moving("S", 0);
+  delay(1000); //wait 1s to release button
+  
+
+
+
 }
