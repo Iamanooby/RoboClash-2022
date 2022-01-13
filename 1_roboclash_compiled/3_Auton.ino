@@ -258,7 +258,7 @@ void expand()//this will be done in setup
   //execute expand code
   arm_mid();
 
-  move_robot(slow_speed, slow_speed, slow_speed, slow_speed);//dont want pid here
+  move_robot(mid_speed, mid_speed, mid_speed, mid_speed);//dont want pid here
   delay(500);
   move_robot(-mid_speed, -mid_speed, -mid_speed, -mid_speed);//dont want pid here
   delay(1000);
@@ -274,7 +274,7 @@ void auton()
   unsigned long timing = millis();
   while(millis()-timing<1000)
   {
-    moving("F", mid_speed);//must be in loop for gyro
+    moving("F", slow_speed);//must be in loop for gyro
   }
   moving("S", 0);
   delay(1000);

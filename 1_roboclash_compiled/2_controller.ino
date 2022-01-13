@@ -169,7 +169,7 @@ void released()
 
 
 int top_arm_pos = 30;//need to change
-int middle_arm_pos = 50;
+int middle_arm_pos = 45;
 int bottom_arm_pos = 170;//need to change
 int collapsed_arm_pos = 2;//need to change 
 
@@ -212,6 +212,20 @@ void arm_control(int ch_value)
   
 }
 
+void cube_protocol()
+{
+
+  arm_control(100);//simulate controller's input rotated all the way to move arm towards lift
+  lift(40);
+  delay(1000);
+  released();//simulate controller's input pushed halfway to move lift up 
+  delay(500);
+  lift(-60);
+  delay(500);
+  lift(-100);
+  
+}
+
 ////////////////////////////////////////////CONTROLS/////////////////////////////////////
 
 
@@ -241,11 +255,20 @@ bool readSwitch(byte channelInput, bool defaultValue){
 /////////////////////////////////////Field Oriented Control////////////////////
 
 bool FOC_on = true;
+float theta_deg = 0;
 
 void field_oriented_control(int &F, int &S)//FOC
 {
-  unreset_gyro();//remove this once u establish a button to reset gyro. otherwise this will use default forward position as 0. so face robot in normal orientation before turning robot on (drifting will occur)
-  float theta_deg = gyro_loop();
+  //unreset_gyro();//remove this once u establish a button to reset gyro. otherwise this will use default forward position as 0. so face robot in normal orientation before turning robot on (drifting will occur)
+  float temp_theta_deg = gyro_loop();
+  if(abs(temp_theta_deg-0)<1e-9 )//if return bad 0 values
+  {
+    theta_deg = theta_deg;
+  }
+  else //return good values
+  {
+    theta_deg =temp_theta_deg;
+  }
   float theta_rad = theta_deg/180.0*M_PI;//convert back to rads
   float f_prime = F*cos(theta_rad)+S*sin(theta_rad);
   float s_prime = -F*sin(theta_rad)+S*cos(theta_rad);
@@ -290,14 +313,15 @@ void controller_setup()
 
 int threshold = 5;
 int ch_values [11] = { };//start using from index 1. So ch 1 is ch_values[1]. Range is from - 100 to 100
-int stall_speed = 50;
-int stall_time = 10; //in seconds
+int stall_speed = 16;//50 on day 1 comp, suspect impulse amplitude too high so lower to this value currently used
+int stall_time = 7; //in seconds
+bool cube_protocol_bool = true;//so cube protocol don't keep executing
 
 void controller_loop()
 {
   for (byte i = 0; i<10; i++)
   {
-    int ch_value = readChannel(i, -100, 100, 0);
+    int ch_value  = readChannel(i, -100, 100, 0);
 
     if (abs(ch_value)>threshold || (i!= 0 && i!= 1 && i!= 3 && i!=5 && i!=8))//set basd on whichever channels need thresholding
       ch_values [i+1] = ch_value;
@@ -307,19 +331,35 @@ void controller_loop()
 
 
 
-  if(FOC_on && ch_values[10]>0)//alter channel values temporarily, passed by reference
+  if(FOC_on && ch_values[10]==0)//alter channel values temporarily, passed by reference
   {
      field_oriented_control(ch_values[2], ch_values[4]);//FOC
+  }
+
+
+  
+  if(ch_values[10] == 100 && cube_protocol_bool)
+  {
+    //cube protocol
+     cube_protocol();
+     cube_protocol_bool = false;//executed once
+  }
+  else if((ch_values[10]== 0 ||ch_values[10]== -100)  && cube_protocol_bool == false)//flip switch up or middle to reset bool
+  {
+    cube_protocol_bool = true;
+    //non edited normal control code continues in main loop
+    
   }
   
 
   if (currSafe_check())//current is safe or safety is disabled
   {
     
-    if(ch_values[1]==0 && ch_values[2]==0 && ch_values[4]==0 && ch_values[6]==0 && ( millis()%(stall_time*1000)<=50 ))
+    if(ch_values[1]==0 && ch_values[2]==0 && ch_values[4]==0 && ch_values[6]==0 )  // millis()%(stall_time*1000)<=50 
+                                                                                  //removed this cos the polling can be different timing from the pulsing then will cut off
     {
-      Serial.println("StallCode");
-      //stallcode for 10ms when no motors running to keep baseus working for every intervalstall time
+//      Serial.println("StallCode");
+      //stallcode for 10ms when no motors running to keep baseus working for every interval stall time
       move_robot(stall_speed, stall_speed, -stall_speed, -stall_speed);//strafe left
     }
     else
