@@ -284,13 +284,13 @@ void controller_setup()
 // 
 //Channel 6 – Control VRA (left roller) inwards is +ve
 //Channel 7 – Control VRB (right roller)inwards is +ve
-//Channel 8 - Switch A
-//Channel 9 - Left Button
-//Channel 10- Right Button
+//Channel 8 - Left 3 way switch
+//Channel 9 - Rightmost 2 way swtich
+//Channel 10- Leftmost 2 way swtich
 
 int threshold = 5;
 int ch_values [11] = { };//start using from index 1. So ch 1 is ch_values[1]. Range is from - 100 to 100
-int stall_speed = 40;
+int stall_speed = 50;
 int stall_time = 10; //in seconds
 
 void controller_loop()
@@ -316,10 +316,11 @@ void controller_loop()
   if (currSafe_check())//current is safe or safety is disabled
   {
     
-    if(ch_values[1]==0 && ch_values[2]==0 && ch_values[4]==0 && ch_values[6]==0 && ( millis()%(stall_time*1000)<=10 ))
+    if(ch_values[1]==0 && ch_values[2]==0 && ch_values[4]==0 && ch_values[6]==0 && ( millis()%(stall_time*1000)<=50 ))
     {
+      Serial.println("StallCode");
       //stallcode for 10ms when no motors running to keep baseus working for every intervalstall time
-      move_robot(stall_speed, stall_speed, -stall_speed, stall_speed);//strafe left
+      move_robot(stall_speed, stall_speed, -stall_speed, -stall_speed);//strafe left
     }
     else
     {
@@ -355,9 +356,13 @@ void controller_loop()
 
   //control claw
   if (ch_values[9]<0)
-    grabbed();
-  else if (ch_values[9]>0)
+  {
     released();
+  }
+  else if (ch_values[9]>0)
+  {
+    grabbed();
+  }
 
   //for auton, check for button pressed AND trigger then activate
 
