@@ -35,36 +35,45 @@ void setup() {
   pinMode(motorBR_1, OUTPUT);
   pinMode(motorBR_2, OUTPUT); 
 
+  pinMode(13,OUTPUT);
+
   Serial.begin(115200);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  digitalWrite(motorIL_1, HIGH);
-  digitalWrite(motorIL_2, LOW);
-  analogWrite(motorIL_speed, 255);
-  
-  digitalWrite(motorIR_1, HIGH);
-  digitalWrite(motorIR_2, LOW);
-  analogWrite(motorIR_speed, 255);
+//  // put your main code here, to run repeatedly:
+//  digitalWrite(13,HIGH);
 //
-//
-//  digitalWrite(motorFL_1, HIGH);
-//  digitalWrite(motorFL_2, LOW);
-//  analogWrite(motorFL_speed, 255);
+//  digitalWrite(motorIL_1, HIGH);
+//  digitalWrite(motorIL_2, HIGH);
+//  analogWrite(motorIL_speed, 255);
 //  
-//  digitalWrite(motorFR_1, HIGH);
-//  digitalWrite(motorFR_2, LOW);
-//  analogWrite(motorFR_speed, 255);
+//  digitalWrite(motorIR_1, HIGH);
+//  digitalWrite(motorIR_2, HIGH);
+//  analogWrite(motorIR_speed, 255);
 //
 //
-//  digitalWrite(motorBL_1, HIGH);
-//  digitalWrite(motorBL_2, LOW);
-//  analogWrite(motorBL_speed, 255);
+
+//strafe inwards by default with low power to manatain current draw
+
+int stall_speed = 40;
+
+  digitalWrite(motorFL_1, HIGH);
+  digitalWrite(motorFL_2, LOW);
+  analogWrite(motorFL_speed, stall_speed);
 //  
-//  digitalWrite(motorBR_1, HIGH);
-//  digitalWrite(motorBR_2, LOW);
-//  analogWrite(motorBR_speed, 255);
+  digitalWrite(motorFR_1, HIGH);
+  digitalWrite(motorFR_2, LOW);
+  analogWrite(motorFR_speed, stall_speed);
+//
+//
+  digitalWrite(motorBL_1, LOW);
+  digitalWrite(motorBL_2, HIGH);
+  analogWrite(motorBL_speed, stall_speed);
+//  
+  digitalWrite(motorBR_1, LOW);
+  digitalWrite(motorBR_2, HIGH);
+  analogWrite(motorBR_speed, stall_speed);
 
   Serial.println(analogRead(A0));
 }

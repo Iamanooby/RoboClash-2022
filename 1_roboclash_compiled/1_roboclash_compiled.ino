@@ -11,12 +11,10 @@ void setup() {
 Serial.begin(115200);
   auton_setup();
   controller_setup();
-//  expand();//waits for button press to continue
 
 }
 
 void loop() 
 {
   controller_loop();
-//auton();
 }

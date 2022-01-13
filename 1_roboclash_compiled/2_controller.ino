@@ -290,7 +290,8 @@ void controller_setup()
 
 int threshold = 5;
 int ch_values [11] = { };//start using from index 1. So ch 1 is ch_values[1]. Range is from - 100 to 100
-
+int stall_speed = 40;
+int stall_time = 10; //in seconds
 
 void controller_loop()
 {
@@ -304,6 +305,8 @@ void controller_loop()
       ch_values [i+1] = 0;
   }
 
+
+
   if(FOC_on && ch_values[10]>0)//alter channel values temporarily, passed by reference
   {
      field_oriented_control(ch_values[2], ch_values[4]);//FOC
@@ -312,11 +315,21 @@ void controller_loop()
 
   if (currSafe_check())//current is safe or safety is disabled
   {
-    //run base motor motor
-    motorFL.moveMotor(+ch_values[2]+ch_values[4]+ch_values[1]);
-    motorFR.moveMotor(+ch_values[2]-ch_values[4]-ch_values[1]);
-    motorBL.moveMotor(+ch_values[2]-ch_values[4]+ch_values[1]);
-    motorBR.moveMotor(+ch_values[2]+ch_values[4]-ch_values[1]);
+    
+    if(ch_values[1]==0 && ch_values[2]==0 && ch_values[4]==0 && ch_values[6]==0 && ( millis()%(stall_time*1000)<=10 ))
+    {
+      //stallcode for 10ms when no motors running to keep baseus working for every intervalstall time
+      move_robot(stall_speed, stall_speed, -stall_speed, stall_speed);//strafe left
+    }
+    else
+    {
+      //run base motor motor
+  
+      motorFL.moveMotor(+ch_values[2]+ch_values[4]+ch_values[1]);
+      motorFR.moveMotor(+ch_values[2]-ch_values[4]-ch_values[1]);
+      motorBL.moveMotor(+ch_values[2]-ch_values[4]+ch_values[1]);
+      motorBR.moveMotor(+ch_values[2]+ch_values[4]-ch_values[1]);
+    }
   }
   else
   {
@@ -370,8 +383,6 @@ void controller_loop()
   }
 
 
-  //processor loop to keep arduino running
-  Serial.println("PROCESSING");
 
 
 
